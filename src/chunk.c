@@ -15,7 +15,7 @@ void write_chunk(Chunk_t *chunk, uint8_t byte, int line) {
     if (chunk->count + 1 > chunk->capacity) {
         int old_capacity = chunk->capacity;
         chunk->capacity = grow_capacity(old_capacity);
-        chunk->code = resize(sizeof(uint8_t), chunk->code, chunk->capacity);
+        chunk->code = resize(chunk->code, sizeof(uint8_t), chunk->capacity);
     }
 
     chunk->code[chunk->count] = byte;

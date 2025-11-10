@@ -52,8 +52,8 @@ void run_file(const char *path) {
     if (result == INTERPRET_RUNTIME_ERROR) {
         exit(70);
     }
-    code = NULL;
     free(code);
+    code = NULL;
 }
 
 void read_lines() {

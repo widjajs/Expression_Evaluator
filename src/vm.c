@@ -1,5 +1,7 @@
 #include "../includes/vm.h"
 #include "../includes/debug.h"
+#include "../includes/memory.h"
+#include "../includes/object.h"
 
 #include <stdarg.h>
 
@@ -19,9 +21,11 @@ vm_t vm;
 
 void init_vm() {
     vm.stack_top = vm.stack;
+    vm.objects = NULL;
 }
 
 void free_vm() {
+    free_objects();
 }
 
 void push(Value_t value) {
@@ -57,6 +61,20 @@ static void throw_runtime_error(const char *format, ...) {
 
 static bool is_falsey(Value_t value) {
     return IS_NONE_VAL(value) || (IS_BOOL_VAL(value) && GET_BOOL_VAL(value) == false);
+}
+
+static void concatenate() {
+    ObjectStr_t *b = GET_STR_VAL(pop());
+    ObjectStr_t *a = GET_STR_VAL(pop());
+
+    int new_length = a->length + b->length;
+    char *new_str = ALLOCATE(char, new_length + 1);
+    memcpy(new_str, a->chars, a->length);
+    memcpy(new_str + a->length, b->chars, b->length);
+    new_str[new_length] = '\0';
+
+    ObjectStr_t *res = allocate_str(new_str, new_length);
+    push(DECL_OBJ_VAL(res));
 }
 
 static InterpretResult_t run() {
@@ -118,7 +136,13 @@ static InterpretResult_t run() {
                 break;
             }
             case OP_ADD: {
-                BINARY_OP(DECL_NUM_VAL, +);
+                if (IS_STR(peek(0)) && IS_STR(peek(1))) {
+                    concatenate();
+                } else if (IS_NUM_VAL(peek(0)) && IS_NUM_VAL(peek(1))) {
+                    BINARY_OP(DECL_NUM_VAL, +);
+                } else {
+                    throw_runtime_error("Operands are not both strings or both numbers");
+                }
                 break;
             }
             case OP_SUB: {

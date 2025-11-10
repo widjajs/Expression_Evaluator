@@ -1,4 +1,5 @@
 #include "../includes/compiler.h"
+#include "../includes/object.h"
 
 Parser_t parser;
 Chunk_t *cur_chunk;
@@ -14,7 +15,7 @@ static void grouping();
 static void unary();
 static void binary();
 static void literal();
-// static void string();
+static void string();
 static void parse_precedence(Precedence_t prec);
 
 bool compile(const char *code, Chunk_t *chunk) {
@@ -77,8 +78,7 @@ ParseRule_t rules[] = {
     [TOKEN_LESS_THAN] = {NULL, binary, PREC_COMPARE},
     [TOKEN_LESS_THAN_EQUAL] = {NULL, binary, PREC_COMPARE},
     [TOKEN_IDENTIFIER] = {NULL, NULL, PREC_NONE},
-    // [TOKEN_STR] = {string, NULL, PREC_NONE},
-    [TOKEN_STR] = {NULL, NULL, PREC_NONE},
+    [TOKEN_STR] = {string, NULL, PREC_NONE},
     [TOKEN_NUM] = {number, NULL, PREC_NONE},
     [TOKEN_AND] = {NULL, NULL, PREC_NONE},
     [TOKEN_CLASS] = {NULL, NULL, PREC_NONE},
@@ -104,13 +104,14 @@ static void expression() {
     parse_precedence(PREC_ASSIGN);
 }
 
-/*
 static void string() {
+    printf("Token: start=%p, length=%d, text='%.*s'\n", parser.prev.start, parser.prev.length,
+           parser.prev.length, parser.prev.start);
+
     write_constant(get_cur_chunk(),
                    DECL_OBJ_VAL(copy_str(parser.prev.start + 1, parser.prev.length - 2)),
                    parser.prev.line);
 }
-*/
 
 static void parse_precedence(Precedence_t prec) {
     go_next();

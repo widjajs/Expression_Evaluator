@@ -1,1 +1,1 @@
-(1 + 2) * 3 == 9 != true
+("hello" + "world" == "hellomyworld") == (1 * 4 > 5)

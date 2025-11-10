@@ -9,9 +9,12 @@ typedef struct {
     uint8_t *pc;
     Value_t stack[256];
     Value_t *stack_top;
+    Object_t *objects;
 } vm_t;
 
 typedef enum { INTERPRET_OK, INTERPRET_COMPILE_ERROR, INTERPRET_RUNTIME_ERROR } InterpretResult_t;
+
+extern vm_t vm;
 
 void init_vm();
 void free_vm();

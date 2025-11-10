@@ -17,6 +17,7 @@ typedef enum {
 // Object_t* can safely cast to ObjectStr_t* if Object_t* pts to ObjectStr_t field
 struct Object_t {
     ObjectType_t type;
+    struct Object_t *next; // for linked list allowing garbage collection
 };
 
 // ObjectStr_t* can be safely casted to Object_t*
@@ -30,6 +31,7 @@ static inline bool is_obj_type(Value_t value, ObjectType_t type) {
     return IS_OBJ_VAL(value) && GET_OBJ_VAL(value)->type == type;
 }
 
+ObjectStr_t *allocate_str(char *chars, int length);
 ObjectStr_t *copy_str(const char *chars, int length);
 
 #endif

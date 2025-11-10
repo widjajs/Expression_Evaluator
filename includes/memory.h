@@ -1,13 +1,14 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#include <stdlib.h>
-
 #include "../includes/utility.h"
 
-#define ALLOCATE(type, count) (type *)reallocate(NULL, 0, sizeof(type) * count)
+// convenience macros so don't have to cast (void *) over and over again
+#define ALLOCATE(type, count) (type *)malloc(sizeof(type) * count)
+#define ALLOCATE_OBJ(type, object_type) (type *)(allocate_object(sizeof(type), object_type))
 
 int grow_capacity(int old_capacity);
-void *resize(size_t type_size, void *ptr, int new_capacity);
+void *resize(void *ptr, size_t type_size, int new_capacity);
+void free_objects();
 
 #endif
