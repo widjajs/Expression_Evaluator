@@ -1,8 +1,6 @@
 #include "../includes/vm.h"
 #include <stdio.h>
 
-// TODO: 257 keep reading along
-
 void read_lines();
 void run_file(const char *path);
 
