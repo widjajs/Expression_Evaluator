@@ -77,5 +77,6 @@ typedef struct {
 
 void init_scanner(const char *file);
 Token_t scan_token();
+bool check_next(const char expected);
 
 #endif

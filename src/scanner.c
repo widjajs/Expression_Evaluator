@@ -3,7 +3,6 @@
 Scanner_t scanner;
 
 static bool at_end();
-static bool check_next(char expected);
 static bool is_digit(char c);
 static bool is_alpha(char c);
 static TokenType_t get_identifier_type();
@@ -227,7 +226,7 @@ static bool at_end() {
     return *scanner.cur == '\0';
 }
 
-static bool check_next(const char expected) {
+bool check_next(const char expected) {
     if (!at_end() && *scanner.cur == expected) {
         scanner.cur++;
         return true;

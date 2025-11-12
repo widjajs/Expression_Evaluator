@@ -1,1 +1,3 @@
-"brother" == "bro"
+let school = "Purdue";
+let year = "2025";
+print school + " " + year;

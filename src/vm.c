@@ -23,11 +23,13 @@ void init_vm() {
     vm.stack_top = vm.stack;
     vm.objects = NULL;
     init_hash_table(&vm.strings);
+    init_hash_table(&vm.globals);
 }
 
 void free_vm() {
     free_objects();
     free_hash_table(&vm.strings);
+    free_hash_table(&vm.globals);
 }
 
 void push(Value_t value) {
@@ -167,9 +169,56 @@ static InterpretResult_t run() {
                 push(DECL_NUM_VAL(-GET_NUM_VAL(pop())));
                 break;
             }
-            case OP_RETURN:
+            case OP_PRINT: {
                 print_value(pop());
                 printf("\n");
+                break;
+            }
+            case OP_POP: {
+                pop();
+                break;
+            }
+            case OP_DEFINE_GLOBAL: {
+                ObjectStr_t *global_name = GET_STR_VAL(vm.chunk->constants.values[*vm.pc++]);
+                insert(&vm.globals, global_name, peek(0));
+                pop();
+                break;
+            }
+            case OP_DEFINE_GLOBAL_LONG: {
+                int idx = *vm.pc++;      // last byte
+                idx |= (*vm.pc++ << 8);  // middle byte
+                idx |= (*vm.pc++ << 16); // front byte
+                ObjectStr_t *global_name = GET_STR_VAL(vm.chunk->constants.values[*vm.pc++]);
+                insert(&vm.globals, global_name, peek(0));
+                pop();
+                break;
+            }
+            case OP_GET_GLOBAL: {
+                ObjectStr_t *global_name = GET_STR_VAL(vm.chunk->constants.values[*vm.pc++]);
+                Value_t *value = get(&vm.globals, global_name);
+                if (value == NULL) {
+                    throw_runtime_error("This variable has not been defined '%s'",
+                                        global_name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                push(*value);
+                break;
+            }
+            case OP_GET_GLOBAL_LONG: {
+                int idx = *vm.pc++;      // last byte
+                idx |= (*vm.pc++ << 8);  // middle byte
+                idx |= (*vm.pc++ << 16); // front byte
+                ObjectStr_t *global_name = GET_STR_VAL(vm.chunk->constants.values[*vm.pc++]);
+                Value_t *value = get(&vm.globals, global_name);
+                if (value == NULL) {
+                    throw_runtime_error("This variable has not been defined '%s'",
+                                        global_name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                push(*value);
+                break;
+            }
+            case OP_RETURN:
                 return INTERPRET_OK;
         }
     }

@@ -11,6 +11,7 @@ typedef struct {
     Value_t stack[256];
     Value_t *stack_top;
     HashTable_t strings;
+    HashTable_t globals;
     Object_t *objects;
 } vm_t;
 

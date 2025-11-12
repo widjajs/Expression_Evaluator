@@ -16,7 +16,13 @@ static void unary();
 static void binary();
 static void literal();
 static void string();
+static void let();
 static void parse_precedence(Precedence_t prec);
+
+static bool match(TokenType_t type);
+static void statement();
+static void declaration();
+static int parse_let(const char *msg);
 
 bool compile(const char *code, Chunk_t *chunk) {
     init_scanner(code);
@@ -24,8 +30,9 @@ bool compile(const char *code, Chunk_t *chunk) {
     parser.has_error = false;
     parser.is_panicking = false;
     go_next();
-    expression();
-    consume(TOKEN_END_FILE, "End of expression");
+    while (!match(TOKEN_END_FILE)) {
+        declaration();
+    }
     stop_compiler();
     return !parser.has_error;
 }
@@ -77,7 +84,7 @@ ParseRule_t rules[] = {
     [TOKEN_GREATER_THAN_EQUAL] = {NULL, binary, PREC_COMPARE},
     [TOKEN_LESS_THAN] = {NULL, binary, PREC_COMPARE},
     [TOKEN_LESS_THAN_EQUAL] = {NULL, binary, PREC_COMPARE},
-    [TOKEN_IDENTIFIER] = {NULL, NULL, PREC_NONE},
+    [TOKEN_IDENTIFIER] = {let, NULL, PREC_NONE},
     [TOKEN_STR] = {string, NULL, PREC_NONE},
     [TOKEN_NUM] = {number, NULL, PREC_NONE},
     [TOKEN_AND] = {NULL, NULL, PREC_NONE},
@@ -104,11 +111,106 @@ static void expression() {
     parse_precedence(PREC_ASSIGN);
 }
 
+static void print_statement() {
+    expression();
+    consume(TOKEN_SEMICOLON, "Expected ';'. Got empty :(");
+    emit_byte(OP_PRINT);
+}
+
+static void expression_statement() {
+    expression();
+    consume(TOKEN_SEMICOLON, "Expected ';'. Put the semicolon please!");
+    emit_byte(OP_POP);
+}
+
+void define_let(int global_id) {
+    if (global_id <= 255) {
+        emit_bytes(OP_DEFINE_GLOBAL, global_id);
+    } else {
+        emit_byte(OP_DEFINE_GLOBAL_LONG);
+        emit_byte(global_id & 0xFF);         // lowest 8 bits
+        emit_byte((global_id >> 8) & 0xFF);  // middle 8 bits
+        emit_byte((global_id >> 16) & 0xFF); // front 8 bits
+    }
+}
+
+static void let_declaration() {
+    int global_id = parse_let("Expected variable name. LET's put a great name :)");
+
+    if (match(TOKEN_EQUAL)) {
+        expression();
+    } else {
+        emit_byte(OP_NONE);
+    }
+    consume(TOKEN_SEMICOLON, "Expected ';'. Put the semicolon please!");
+    define_let(global_id);
+}
+
+// get us out of panic mode by consuming till the next semicolon
+static void synchronize() {
+    parser.is_panicking = false;
+    while (parser.cur.type != TOKEN_END_FILE) {
+        if (parser.prev.type == TOKEN_SEMICOLON) {
+            return;
+        }
+        if (parser.cur.type == TOKEN_RETURN) {
+            return;
+        }
+        go_next();
+    }
+}
+
+static void declaration() {
+    if (match(TOKEN_LET)) {
+        let_declaration();
+    } else {
+        statement();
+    }
+    if (parser.is_panicking) {
+        synchronize();
+    }
+}
+
+static bool match(TokenType_t type) {
+    if (parser.cur.type == type) {
+        go_next();
+        return true;
+    }
+    return false;
+}
+
+static void statement() {
+    if (match(TOKEN_PRINT)) {
+        print_statement();
+    } else {
+        expression_statement();
+    }
+}
+
 static void string() {
     write_constant(get_cur_chunk(),
                    DECL_OBJ_VAL(allocate_str(parser.prev.start + 1, parser.prev.length - 2)),
                    parser.prev.line);
 }
+
+static void named_let(Token_t name) {
+    int arg = add_constant(get_cur_chunk(),
+                           DECL_OBJ_VAL(allocate_str(parser.prev.start, parser.prev.length)));
+    if (arg <= 255) {
+        emit_bytes(OP_GET_GLOBAL, arg);
+    } else {
+        emit_byte(OP_GET_GLOBAL_LONG); // new opcode for long globals
+        emit_byte(arg & 0xFF);         // lowest 8 bits
+        emit_byte((arg >> 8) & 0xFF);  // middle 8 bits
+        emit_byte((arg >> 16) & 0xFF); // highest 8 bits
+    }
+}
+
+static void let() {
+    named_let(parser.prev);
+}
+
+// ===================================================================================================
 
 static void parse_precedence(Precedence_t prec) {
     go_next();
@@ -125,6 +227,13 @@ static void parse_precedence(Precedence_t prec) {
         ParseFunc_t infix_rule = rules[parser.prev.type].infix_rule;
         infix_rule();
     }
+}
+
+static int parse_let(const char *msg) {
+    // parse variable and add constant byte to chunk
+    consume(TOKEN_IDENTIFIER, msg);
+    return add_constant(get_cur_chunk(),
+                        DECL_OBJ_VAL(allocate_str(parser.prev.start, parser.prev.length)));
 }
 
 static void literal() {

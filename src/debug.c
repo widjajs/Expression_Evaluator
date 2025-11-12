@@ -32,6 +32,10 @@ int disassemble_instruction(Chunk_t *chunk, int offset) {
             return standard_instruction("OP_RETURN", offset);
         case OP_CONSTANT:
             return constant_instruction("OP_CONSTANT", chunk, offset);
+        case OP_DEFINE_GLOBAL:
+            return constant_instruction("OP_DEFINE_GLOBAL", chunk, offset);
+        case OP_GET_GLOBAL:
+            return constant_instruction("OP_GET_GLOBAL", chunk, offset);
         case OP_NONE:
             return standard_instruction("OP_NONE", offset);
         case OP_TRUE:
@@ -48,6 +52,10 @@ int disassemble_instruction(Chunk_t *chunk, int offset) {
             return standard_instruction("OP_LESS_THAN", offset);
         case OP_CONSTANT_LONG:
             return constant_long_instruction("OP_CONSTANT_LONG", chunk, offset);
+        case OP_DEFINE_GLOBAL_LONG:
+            return constant_long_instruction("OP_DEFINE_GLOBAL_LONG", chunk, offset);
+        case OP_GET_GLOBAL_LONG:
+            return constant_long_instruction("OP_GET_GLOBAL_LONG", chunk, offset);
         case OP_NEGATE:
             return standard_instruction("OP_NEGATE", offset);
         case OP_ADD:
@@ -58,6 +66,10 @@ int disassemble_instruction(Chunk_t *chunk, int offset) {
             return standard_instruction("OP_MUL", offset);
         case OP_DIV:
             return standard_instruction("OP_DIV", offset);
+        case OP_PRINT:
+            return standard_instruction("OP_PRINT", offset);
+        case OP_POP:
+            return standard_instruction("OP_POP", offset);
         default:
             printf("Unknown OpCode %d\n", instruction);
             return offset + 1;

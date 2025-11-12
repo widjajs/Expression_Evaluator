@@ -20,6 +20,13 @@ static uint32_t hash_string(const char *key, int length) {
 }
 
 ObjectStr_t *allocate_str(const char *chars, int length) {
+    uint32_t hash = hash_string(chars, length);
+    // string object already exists in memory check
+    ObjectStr_t *interned = find_str(&vm.strings, chars, length, hash);
+    if (interned != NULL) {
+        return interned;
+    }
+
     ObjectStr_t *new_str =
         (ObjectStr_t *)allocate_object(sizeof(ObjectStr_t) + sizeof(char) * (length + 1), OBJ_STR);
     new_str->length = length;
@@ -27,13 +34,6 @@ ObjectStr_t *allocate_str(const char *chars, int length) {
     new_str->chars[length] = '\0';
 
     new_str->hash = hash_string(chars, length);
-
-    // string object already exists in memory check
-    ObjectStr_t *interned = find_str(&vm.strings, chars, length, new_str->hash);
-    if (interned != NULL) {
-        free(new_str);
-        return interned;
-    }
 
     insert(&vm.strings, new_str, DECL_NONE_VAL);
 

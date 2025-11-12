@@ -23,6 +23,12 @@ typedef enum {
     OP_EQUAL,
     OP_GREATER_THAN,
     OP_LESS_THAN,
+    OP_PRINT,
+    OP_POP,
+    OP_DEFINE_GLOBAL,
+    OP_DEFINE_GLOBAL_LONG, // if global id > 255
+    OP_GET_GLOBAL,
+    OP_GET_GLOBAL_LONG, // if globa id > 255
     OP_RETURN,
 } OpCode_t;
 

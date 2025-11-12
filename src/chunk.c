@@ -37,7 +37,7 @@ int add_constant(Chunk_t *chunk, Value_t value) {
     return chunk->constants.count - 1;
 }
 
-// helper method to write constants so we don't need to do separate write_chunk() calls in main
+// helper method to write constants so we don't need to do separate write_chunk() calls
 void write_constant(Chunk_t *chunk, Value_t value, int line) {
     int idx = add_constant(chunk, value);
     if (idx <= 255) {
