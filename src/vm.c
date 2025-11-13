@@ -218,6 +218,29 @@ static InterpretResult_t run() {
                 push(*value);
                 break;
             }
+            case OP_SET_GLOBAL: {
+                ObjectStr_t *global_name = GET_STR_VAL(vm.chunk->constants.values[*vm.pc++]);
+                if (insert(&vm.globals, global_name, peek(0))) {
+                    drop(&vm.globals, global_name);
+                    throw_runtime_error("Undefined variable name '%s' LET's define it!",
+                                        global_name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
+            }
+            case OP_SET_GLOBAL_LONG: {
+                int idx = *vm.pc++;      // last byte
+                idx |= (*vm.pc++ << 8);  // middle byte
+                idx |= (*vm.pc++ << 16); // front byte
+                ObjectStr_t *global_name = GET_STR_VAL(vm.chunk->constants.values[idx]);
+                if (insert(&vm.globals, global_name, peek(0))) {
+                    drop(&vm.globals, global_name);
+                    throw_runtime_error("Undefined variable name '%s' LET's define it!",
+                                        global_name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
+            }
             case OP_RETURN:
                 return INTERPRET_OK;
         }

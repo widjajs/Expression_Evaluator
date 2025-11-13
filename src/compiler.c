@@ -10,13 +10,13 @@ static void consume(TokenType_t type, const char *msg);
 static void report_error(Token_t *token, const char *msg);
 static void stop_compiler();
 
-static void number();
-static void grouping();
-static void unary();
-static void binary();
-static void literal();
-static void string();
-static void let();
+static void number(bool can_assign);
+static void grouping(bool can_assign);
+static void unary(bool can_assign);
+static void binary(bool can_assign);
+static void literal(bool can_assign);
+static void string(bool can_assign);
+static void let(bool can_assign);
 static void parse_precedence(Precedence_t prec);
 
 static bool match(TokenType_t type);
@@ -187,27 +187,36 @@ static void statement() {
     }
 }
 
-static void string() {
+static void string(bool can_assign) {
     write_constant(get_cur_chunk(),
                    DECL_OBJ_VAL(allocate_str(parser.prev.start + 1, parser.prev.length - 2)),
                    parser.prev.line);
 }
 
-static void named_let(Token_t name) {
-    int arg = add_constant(get_cur_chunk(),
-                           DECL_OBJ_VAL(allocate_str(parser.prev.start, parser.prev.length)));
-    if (arg <= 255) {
-        emit_bytes(OP_GET_GLOBAL, arg);
+static void emit_let_opcode(OpCode_t short_op, OpCode_t long_op, int operand) {
+    if (operand <= 255) {
+        emit_bytes(short_op, (uint8_t)(operand));
     } else {
-        emit_byte(OP_GET_GLOBAL_LONG); // new opcode for long globals
-        emit_byte(arg & 0xFF);         // lowest 8 bits
-        emit_byte((arg >> 8) & 0xFF);  // middle 8 bits
-        emit_byte((arg >> 16) & 0xFF); // highest 8 bits
+        emit_byte(long_op);                // new opcode for long globals
+        emit_byte(operand & 0xFF);         // lowest 8 bits
+        emit_byte((operand >> 8) & 0xFF);  // middle 8 bits
+        emit_byte((operand >> 16) & 0xFF); // highest 8 bits
     }
 }
 
-static void let() {
-    named_let(parser.prev);
+static void named_let(Token_t name, bool can_assign) {
+    int operand = add_constant(get_cur_chunk(),
+                               DECL_OBJ_VAL(allocate_str(parser.prev.start, parser.prev.length)));
+    if (can_assign && match(TOKEN_EQUAL)) {
+        expression();
+        emit_let_opcode(OP_SET_GLOBAL, OP_SET_GLOBAL_LONG, operand);
+    } else {
+        emit_let_opcode(OP_GET_GLOBAL, OP_GET_GLOBAL_LONG, operand);
+    }
+}
+
+static void let(bool can_assign) {
+    named_let(parser.prev, can_assign);
 }
 
 // ===================================================================================================
@@ -220,12 +229,18 @@ static void parse_precedence(Precedence_t prec) {
         return;
     }
 
-    prefix_rule();
+    // only assign if we are in the lowest precedence otherwise thing like a = b * c might break
+    bool can_assign = prec <= PREC_ASSIGN;
+    prefix_rule(can_assign);
 
     while (prec <= rules[parser.cur.type].precedence) {
         go_next();
         ParseFunc_t infix_rule = rules[parser.prev.type].infix_rule;
-        infix_rule();
+        infix_rule(can_assign);
+    }
+
+    if (can_assign && match(TOKEN_EQUAL)) {
+        report_error(&parser.prev, "Invalid assignment");
     }
 }
 
@@ -236,7 +251,7 @@ static int parse_let(const char *msg) {
                         DECL_OBJ_VAL(allocate_str(parser.prev.start, parser.prev.length)));
 }
 
-static void literal() {
+static void literal(bool can_assign) {
     switch (parser.prev.type) {
         case TOKEN_FALSE:
             emit_byte(OP_FALSE);
@@ -252,17 +267,17 @@ static void literal() {
     }
 }
 
-static void number() {
+static void number(bool can_assign) {
     double val = strtod(parser.prev.start, NULL);
     write_constant(get_cur_chunk(), DECL_NUM_VAL(val), parser.prev.line);
 }
 
-static void grouping() {
+static void grouping(bool can_assign) {
     expression();
     consume(TOKEN_CLOSE_PAREN, "Expect ')' after expression");
 }
 
-static void unary() {
+static void unary(bool can_assign) {
     TokenType_t op_type = parser.prev.type;
     parse_precedence(PREC_UNARY);
 
@@ -279,7 +294,7 @@ static void unary() {
     }
 }
 
-static void binary() {
+static void binary(bool can_assign) {
     // left operator
     TokenType_t op_type = parser.prev.type;
 

@@ -20,7 +20,8 @@ typedef enum {
     PREC_ACCESSOR  // . () function calls and accesses
 } Precedence_t;
 
-typedef void (*ParseFunc_t)(); // used to "store" the parse function we need for each token
+typedef void (*ParseFunc_t)(
+    bool can_assign); // used to "store" the parse function we need for each token
 
 typedef struct {
     ParseFunc_t prefix_rule;

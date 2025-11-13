@@ -36,6 +36,8 @@ int disassemble_instruction(Chunk_t *chunk, int offset) {
             return constant_instruction("OP_DEFINE_GLOBAL", chunk, offset);
         case OP_GET_GLOBAL:
             return constant_instruction("OP_GET_GLOBAL", chunk, offset);
+        case OP_SET_GLOBAL:
+            return constant_instruction("OP_SET_GLOBAL", chunk, offset);
         case OP_NONE:
             return standard_instruction("OP_NONE", offset);
         case OP_TRUE:
@@ -56,6 +58,8 @@ int disassemble_instruction(Chunk_t *chunk, int offset) {
             return constant_long_instruction("OP_DEFINE_GLOBAL_LONG", chunk, offset);
         case OP_GET_GLOBAL_LONG:
             return constant_long_instruction("OP_GET_GLOBAL_LONG", chunk, offset);
+        case OP_SET_GLOBAL_LONG:
+            return constant_long_instruction("OP_SET_GLOBAL_LONG", chunk, offset);
         case OP_NEGATE:
             return standard_instruction("OP_NEGATE", offset);
         case OP_ADD:
