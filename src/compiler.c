@@ -1,4 +1,5 @@
 #include "../includes/compiler.h"
+#include "../includes/hash_table.h"
 #include "../includes/object.h"
 
 Parser_t parser;
@@ -24,8 +25,11 @@ static void statement();
 static void declaration();
 static int parse_let(const char *msg);
 
+HashTable_t compiler_ids;
+
 bool compile(const char *code, Chunk_t *chunk) {
     init_scanner(code);
+    init_hash_table(&compiler_ids);
     cur_chunk = chunk;
     parser.has_error = false;
     parser.is_panicking = false;
@@ -60,6 +64,7 @@ static void stop_compiler() {
         disassemble_chunk(get_cur_chunk(), "Code");
     }
 #endif
+    free_hash_table(&compiler_ids);
 }
 
 // ===================================================================================================
@@ -204,9 +209,22 @@ static void emit_let_opcode(OpCode_t short_op, OpCode_t long_op, int operand) {
     }
 }
 
+// will either get consant id if exists or add it if not
+// helps prevent uneeded duplication of strings in constants array
+static int constant_identifier(Chunk_t *chunk, HashTable_t *ids, ObjectStr_t *name) {
+    Value_t *existing = get(ids, name);
+    if (existing != NULL) {
+        // alr exists so return saved idx instead of allcoating new one
+        return (int)(GET_NUM_VAL(*existing));
+    }
+    int idx = add_constant(get_cur_chunk(), DECL_OBJ_VAL(name));
+    insert(ids, name, DECL_NUM_VAL(idx));
+    return idx;
+}
+
 static void named_let(Token_t name, bool can_assign) {
-    int operand = add_constant(get_cur_chunk(),
-                               DECL_OBJ_VAL(allocate_str(parser.prev.start, parser.prev.length)));
+    ObjectStr_t *global_name = allocate_str(parser.prev.start, parser.prev.length);
+    int operand = constant_identifier(get_cur_chunk(), &compiler_ids, global_name);
     if (can_assign && match(TOKEN_EQUAL)) {
         expression();
         emit_let_opcode(OP_SET_GLOBAL, OP_SET_GLOBAL_LONG, operand);
