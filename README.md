@@ -1,8 +1,6 @@
 # Expression Evaluator
 
-A simple expression evaluator implemented in C, inspired by **Crafting Interpreters** by Robert Nystrom. This project covers parsing and evaluating arithmetic expressions and basic operators. 
-This will eventually be expanded to a fully fledged language.
-
+A simple interpreter implemented in C, inspired by **Crafting Interpreters** by Robert Nystrom.
 ## Features
 - **Arithmetic operations**: `+`, `-`, `*`, `/`
 - **Unary operations**: `-` (negation)
